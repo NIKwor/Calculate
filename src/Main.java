@@ -1,11 +1,10 @@
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
+import java.util.stream.Collectors;
 
 // Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
 // then press Enter. You can now see whitespace characters in your code.
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String... args) {
         Scanner scanner = new Scanner(System.in);
         System.out.println("input: ");
         var input = scanner.nextLine();
@@ -22,11 +21,12 @@ public class Main {
         boolean isRoman = false;
 
         for (i = 0; i<input.length(); i++){
-            if (input.charAt(i)==' ' || input.charAt(i)=='+' || input.charAt(i)=='-' || input.charAt(i)=='*' || input.charAt(i)=='/'){
+            var currentChar = input.charAt(i);
+            if (currentChar == ' ' || currentChar == '+' || currentChar == '-' || currentChar == '*' || currentChar == '/'){
                 break;
             }
 
-            first.append(input.charAt(i));
+            first.append(currentChar);
         }
 
         int firstNumber;
@@ -55,11 +55,24 @@ public class Main {
         int secondNumber;
 
         if (isRoman(second.toString())) {
+            if (!isRoman) {
+                throw new IllegalArgumentException("Can't calculate for arabic and roman args.");
+            }
+
             secondNumber = transformToArabic(second.toString());
             isRoman = true;
         }
         else {
+            if (isRoman) {
+                throw new IllegalArgumentException("Can't calculate for arabic and roman args.");
+            }
+
             secondNumber = Integer.parseInt(second.toString());
+        }
+
+        if (i < input.length() - 1)
+        {
+            throw new IllegalArgumentException("Incorrect input.");
         }
 
         if (firstNumber > 10 || secondNumber > 10) {
@@ -74,18 +87,23 @@ public class Main {
             case '-':
                 result = firstNumber - secondNumber;
                 break;
-            case '*': // case это условие
+            case '*':
                 result = firstNumber * secondNumber;
                 break;
-            case '/': // case это условие
+            case '/':
                 result = firstNumber / secondNumber;
                 break;
             default:
                 throw new IllegalArgumentException("Unexpected value");
         }
 
-        if (isRoman)
+        if (isRoman){
+            if (result <= 0){
+                throw new IllegalArgumentException("Result is lower than or equals to 0.");
+            }
+
             return transformToRoman(result);
+        }
 
         return result.toString();
     }
@@ -99,24 +117,67 @@ public class Main {
         return false;
     }
 
-    public static int transformToArabic(String roman_numeral) {
-        Map<Character, Integer> roman_char_dict = new HashMap<>();
-        roman_char_dict.put('I', 1);
-        roman_char_dict.put('V', 5);
-        roman_char_dict.put('X', 10);
-        roman_char_dict.put('L', 50);
-        roman_char_dict.put('C', 100);
-        roman_char_dict.put('D', 500);
-        roman_char_dict.put('M', 1000);
+    public static int transformToArabic(String romanNumeral) {
+        var isValid = ValidateRoman(romanNumeral);
+
+        if (!isValid) {
+            throw new IllegalArgumentException("Invalid input string.");
+        }
 
         int res = 0;
-        for (int i = 0; i < roman_numeral.length(); i += 1) {
-            if (i == 0 || roman_char_dict.get(roman_numeral.charAt(i)) <= roman_char_dict.get(roman_numeral.charAt(i - 1)))
-                res += roman_char_dict.get(roman_numeral.charAt(i));
-            else
-                res += roman_char_dict.get(roman_numeral.charAt(i)) - 2 * roman_char_dict.get(roman_numeral.charAt(i - 1));
+        boolean isExcepted = true;
+
+        for (int i = romanNumeral.length() - 1; i > 0; i--)
+        {
+            int num;
+
+            try
+            {
+                num = RomanNumeral.valueOf(romanNumeral.substring(i - 1, i + 1)).getValue();
+                isExcepted = false;
+            }
+            catch (Exception e)
+            {
+                num = RomanNumeral.valueOf(
+                        Character.toString(romanNumeral.charAt(i))
+                ).getValue();
+            }
+
+            res += num;
         }
+
+        if (isExcepted)
+        {
+            res += RomanNumeral.valueOf(
+                    Character.toString(romanNumeral.charAt(0))
+            ).getValue();
+        }
+
         return res;
+    }
+    private static boolean ValidateRoman(String romanNumeral) {
+        // Не придумал решщения лучше.
+        List<String> invalidRoman = new ArrayList<>()
+        {{
+            add("IIII");
+            add("IIIII");
+            add("IIIIII");
+            add("IIIIIII");
+            add("IIIIIIII");
+            add("IIIIIIIII");
+            add("VIIII");
+            add("VIIIII");
+            add("VIIIIII");
+            add("IM");
+            add("ID");
+        }};
+
+        for (String invalid: invalidRoman) {
+            if (romanNumeral.contains(invalid))
+                return false;
+        }
+
+        return true;
     }
     public static String transformToRoman(int num) {
         var keys = new String[] { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" };
@@ -138,5 +199,21 @@ public class Main {
         }
 
         return ret.toString();
+    }
+}
+
+enum RomanNumeral {
+    I(1), IV(4), V(5), IX(9), X(10),
+    XL(40), L(50), XC(90), C(100),
+    CD(400), D(500), CM(900), M(1000);
+
+    private int value;
+
+    RomanNumeral(int value) {
+        this.value = value;
+    }
+
+    public int getValue() {
+        return value;
     }
 }
